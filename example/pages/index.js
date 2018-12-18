@@ -1,22 +1,40 @@
-import { connect } from "../mobx-wxapp";
+import { wxObserver, mapData } from "../mobx-wxapp";
 import globalStore from "../stores/global.store";
 import indexStore from "../stores/index.store";
+import { observable } from '../mobx';
 
-// page
+const data = observable({
+  title: 'aaa',
+  seconds: 0,
+  list: [],
+  get color() {
+    return this.seconds % 2 === 0 ? "red" : "green";
+  }
+});
+
 Page({
   onLoad() {
-    connect(this,() => ({
-        title: globalStore.title,
-        seconds: indexStore.seconds,
-        color: indexStore.color
-      }),{
-        setDataCallback: changed => {
-          console.log(changed);
-        }
+    wxObserver(this, () => {
+      return mapData(data);
+    }, {
+      afterSetData(data) {
+        console.log(data);
       }
-    );
+    });
   },
   add() {
-    indexStore.tick();
+    data.seconds++;
+  },
+  addList() {
+    data.list.push(Math.random());
+  },
+  change() {
+    data.list[1] = 2;
+  },
+  remove() {
+    data.list.splice(1, 1);
+    this.$nextTick(() => {
+      console.log('@@@');
+    })
   }
 });

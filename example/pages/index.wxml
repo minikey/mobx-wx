@@ -1,3 +1,7 @@
 <view>{{ title }} :</view>
 <view style="color:{{color}}"> seconds:{{ seconds }} </view>
+<view wx:for="{{list}}" wx:key="id">{{item}}</view>
 <button bindtap="add">add</button>
+<button bindtap="addList">add</button>
+<button bindtap="change">change</button>
+<button bindtap="remove">delete</button>

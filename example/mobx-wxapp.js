@@ -1,4 +1,3 @@
-/* https://github.com/b5156/mobx-wxapp */
 import {
   autorun,
   isObservableObject,
@@ -7,14 +6,23 @@ import {
   isObservableMap,
   toJS
 } from "mobx";
+import diff from './diff';
 
-function connect(context, mapStateToProps, options = {}) {
+function wxObserver(context, mapStateToProps, options = {}) {
+  let microTask = []; // 微任务
   if (!isTypeFunction(mapStateToProps)) {
     throw new TypeError("mapStateToProps 必须是一个function");
   }
 
-  const delay = options.delay || 30; //setData执行的最小间隔
-  const callback = options.setDataCallback || (() => {}); //setData的回调
+  const delay = options.delay || 20;
+  const afterSetData = options.afterSetData || function() {};
+
+  context.$nextTick = function(func) {
+    if (!isTypeFunction(func)) {
+      throw new Error('nextTick参数必须为function');
+    }
+    microTask.push(func);
+  };
 
   let tempdata = {};
   let last = 0;
@@ -22,11 +30,29 @@ function connect(context, mapStateToProps, options = {}) {
     Object.assign(tempdata, nextdata);
     clearTimeout(last);
     last = setTimeout(() => {
-      const newValue = diff(context.data, tempdata);
-      // console.log("new data:", changed);
-      context.setData(newValue, () => {
-        callback(newValue);
-      });
+      let diffProps = diff(tempdata, context.data);
+      if (Object.keys(diffProps).length > 0) {
+        const hash = {};
+        let key = '';
+        for (key in diffProps) {
+          hash[key] = diffProps[key];
+        }
+        context.setData(hash, () => {
+          try {
+            afterSetData(hash);
+          } catch(e) {
+            console.log(e);
+          }
+          microTask.forEach((func) => {
+            try {
+              func.call(this);
+            } catch(e) {
+              console.log(e);
+            }
+          });
+          microTask = [];
+        });
+      }
       tempdata = {};
     }, delay);
   };
@@ -57,41 +83,19 @@ function connect(context, mapStateToProps, options = {}) {
   }
   return disposer;
 }
-function diff(ps, ns) {
-  const value = {};
-  for (let k in ns) {
-    if (k in ps) {
-      if (!equals(ps[k], ns[k])) {
-        value[k] = ns[k];
-      }
-    } else {
-      value[k] = ns[k];
-    }
-  }
-  return value;
-}
-function equals(x, y) {
-  const in1 = x instanceof Object;
-  const in2 = y instanceof Object;
-  if (!in1 || !in2) {
-    return x === y;
-  }
-  if (Object.keys(x).length !== Object.keys(y).length) {
-    return false;
-  }
-  for (let p in x) {
-    const a = x[p] instanceof Object;
-    const b = y[p] instanceof Object;
-    if (a && b) {
-      return equals(x[p], y[p]);
-    } else if (x[p] !== y[p]) {
-      return false;
-    }
-  }
-  return true;
-}
+
 function isTypeFunction(fn) {
   return typeof fn === "function";
 }
 
-export { connect };
+function mapData(observable) {
+  if (!('$mobx' in observable)) {
+    throw new Error('对象不是mobx对象');
+  }
+  return Object.keys(observable.$mobx.values).reduce((c, key) => {
+    c[key] = observable[key];
+    return c;
+  }, {});
+}
+
+export { wxObserver, mapData };
