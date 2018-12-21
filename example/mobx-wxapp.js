@@ -30,7 +30,13 @@ function wxObserver(context, mapStateToProps, options = {}) {
     Object.assign(tempdata, nextdata);
     clearTimeout(last);
     last = setTimeout(() => {
-      let diffProps = diff(tempdata, context.data);
+      const cxtData = context.data;
+      // 缩小范围，映射到 data 中到字段可能只有部分，因此只对比 tmpdata 中的字段
+      const data = Object.keys(tempdata).reduce((c, key) => {
+        c[key] = cxtData[key];
+        return c;
+      }, {});
+      let diffProps = diff(tempdata, data);
       if (Object.keys(diffProps).length > 0) {
         const hash = {};
         let key = '';

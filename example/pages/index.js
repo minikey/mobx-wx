@@ -13,6 +13,9 @@ const data = observable({
 });
 
 Page({
+  data: {
+    name: 'mobx测试'
+  },
   onLoad() {
     wxObserver(this, () => {
       return mapData(data);
