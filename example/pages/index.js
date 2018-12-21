@@ -3,7 +3,7 @@ import globalStore from "../stores/global.store";
 import indexStore from "../stores/index.store";
 import { observable } from '../mobx';
 
-const data = observable({
+const store = observable({
   title: 'aaa',
   seconds: 0,
   list: [],
@@ -18,7 +18,7 @@ Page({
   },
   onLoad() {
     wxObserver(this, () => {
-      return mapData(data);
+      return mapData(store);
     }, {
       afterSetData(data) {
         console.log(data);
@@ -26,16 +26,16 @@ Page({
     });
   },
   add() {
-    data.seconds++;
+    store.seconds++;
   },
   addList() {
-    data.list.push(Math.random());
+    store.list.push(Math.random());
   },
   change() {
-    data.list[1] = 2;
+    store.list[1] = 2;
   },
   remove() {
-    data.list.splice(1, 1);
+    store.list.splice(1, 1);
     this.$nextTick(() => {
       console.log('@@@');
     })
